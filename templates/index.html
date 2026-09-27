@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotex AI Trading Terminal</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: #151c2c;
+            --accent: #38bdf8;
+            --green: #22c55e;
+            --red: #ef4444;
+            --text: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background: var(--bg-color); color: var(--text); min-height: 100vh; padding: 12px; display: flex; flex-direction: column; align-items: center; }
+
+        .container { width: 100%; max-width: 1240px; margin: auto; }
+        
+        header { width: 100%; padding: 15px 20px; background: rgba(21, 28, 44, 0.9); backdrop-filter: blur(10px); border-radius: 12px; margin-bottom: 20px; border: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        header h1 { font-size: 20px; color: var(--accent); letter-spacing: 0.5px; }
+
+        #auth-page { max-width: 420px; margin: 30px auto; width: 100%; }
+        .card { background: var(--card-bg); border-radius: 16px; padding: 25px; border: 1px solid #1e293b; box-shadow: 0 15px 35px rgba(0,0,0,0.5); }
+        .form-title { font-size: 22px; font-weight: 700; margin-bottom: 20px; text-align: center; color: var(--text); }
+
+        .input-group { margin-bottom: 16px; }
+        .input-group label { display: block; font-size: 13px; color: var(--text-sub); margin-bottom: 6px; }
+        .input-group input, .input-group select { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 15px; outline: none; transition: border-color 0.2s; }
+        .input-group input:focus, .input-group select:focus { border-color: var(--accent); }
+
+        .btn-primary { width: 100%; padding: 14px; border: none; border-radius: 8px; background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s, opacity 0.2s; }
+        .btn-primary:hover { opacity: 0.95; transform: translateY(-1px); }
+
+        .toggle-link { text-align: center; margin-top: 15px; font-size: 14px; color: var(--text-sub); cursor: pointer; }
+        .toggle-link span { color: var(--accent); font-weight: 600; }
+
+        #dashboard-page { display: none; width: 100%; }
+        .grid-layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media(min-width: 950px) { .grid-layout { grid-template-columns: 360px 1fr; } }
+
+        .signal-card { background: var(--card-bg); border-radius: 16px; padding: 20px; border: 1px solid #1e293b; }
+        .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 15px; }
+        
+        .price-action-table { width: 100%; margin-top: 15px; border-collapse: collapse; }
+        .price-action-table td { padding: 10px 0; border-bottom: 1px solid #1e293b; font-size: 14px; }
+        .price-action-table td:last-child { text-align: right; font-weight: bold; }
+
+        .chart-card { background: var(--card-bg); border-radius: 16px; padding: 15px; border: 1px solid #1e293b; min-height: 520px; display: flex; flex-direction: column; gap: 15px; }
+        #tv-chart { width: 100%; height: 460px; border-radius: 8px; overflow: hidden; }
+
+        .call-btn { background: rgba(34, 197, 94, 0.15); color: var(--green); border: 1px solid var(--green); }
+        .put-btn { background: rgba(239, 68, 68, 0.15); color: var(--red); border: 1px solid var(--red); }
+        .neutral-btn { background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid #eab308; }
+    </style>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>⚡ QUOTEX AI PRO TERMINAL</h1>
+            <div id="user-info" style="font-size: 14px; color: var(--text-sub);">Guest Mode</div>
+        </header>
+
+        <div id="auth-page">
+            <div class="card" id="login-box">
+                <div class="form-title">User Login</div>
+                <div class="input-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" placeholder="example@gmail.com" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="login-pass" placeholder="••••••••">
+                </div>
+                <button class="btn-primary" onclick="handleLogin()">Login to Terminal</button>
+                <div class="toggle-link" onclick="switchAuth('signup')">নতুন অ্যাকাউন্ট খুলুন? <span>Sign Up করুন</span></div>
+            </div>
+
+            <div class="card" id="signup-box" style="display: none;">
+                <div class="form-title">Create Account</div>
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" id="signup-name" placeholder="আপনার নাম">
+                </div>
+                <div class="input-group">
+                    <label>Active Email</label>
+                    <input type="email" id="signup-email" placeholder="example@gmail.com" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <label>Phone Number</label>
+                    <input type="text" id="signup-phone" placeholder="017XXXXXXXX">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="signup-pass" placeholder="••••••••">
+                </div>
+                <button class="btn-primary" onclick="handleSignup()">Sign Up Now</button>
+                <div class="toggle-link" onclick="switchAuth('login')">ইতিমধ্যে অ্যাকাউন্ট আছে? <span>Login করুন</span></div>
+            </div>
+        </div>
+
+        <div id="dashboard-page">
+            <div class="grid-layout">
+                <div class="signal-card">
+                    <h3 style="margin-bottom: 15px; color: var(--accent);">Trading Panel</h3>
+                    
+                    <div class="input-group">
+                        <label>Select Currency Pair</label>
+                        <select id="symbol-select" onchange="updateChart()">
+                            <option value="FX_IDC:EURUSD">EUR/USD</option>
+                            <option value="FX_IDC:GBPUSD">GBP/USD</option>
+                            <option value="FX_IDC:USDJPY">USD/JPY</option>
+                            <option value="FX_IDC:AUDUSD">AUD/USD</option>
+                            <option value="FX_IDC:USDCAD">USD/CAD</option>
+                            <option value="FX_IDC:EURGBP">EUR/GBP</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Candle Timeframe</label>
+                        <select id="tf-select" onchange="updateChart()">
+                            <option value="1">1 Minute (Scalping)</option>
+                            <option value="5" selected>5 Minutes (Standard)</option>
+                            <option value="15">15 Minutes (Swing)</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-primary" id="analyze-btn" onclick="getAISignal()" style="margin-bottom: 20px;">ANALYZE MARKET NOW</button>
+
+                    <div id="signal-output" style="display: none; background: #0f172a; padding: 15px; border-radius: 12px; border: 1px solid #1e293b;">
+                        <span class="status-badge" id="signal-badge">ANALYSIS READY</span>
+                        
+                        <h2 id="signal-direction" style="font-size: 22px; margin: 10px 0;">--</h2>
+                        
+                        <table class="price-action-table">
+                            <tr><td>Entry Price Level</td><td id="pa-price" style="color: var(--accent);">0.00000</td></tr>
+                            <tr><td>Suggested Action</td><td id="pa-action">--</td></tr>
+                            <tr><td>Support Level (S1)</td><td id="pa-support" style="color: var(--green);">0.00000</td></tr>
+                            <tr><td>Resistance Level (R1)</td><td id="pa-resistance" style="color: var(--red);">0.00000</td></tr>
+                            <tr><td>Next Candle Entry</td><td id="pa-time">00:00:00</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <h3 style="color: var(--text-sub);">Live Interactive Market Graphics</h3>
+                    <div id="tv-chart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchAuth(type) {
+            document.getElementById('login-box').style.display = type === 'login' ? 'block' : 'none';
+            document.getElementById('signup-box').style.display = type === 'signup' ? 'block' : 'none';
+        }
+
+        async function handleSignup() {
+            const username = document.getElementById('signup-name').value.trim();
+            const email = document.getElementById('signup-email').value.trim();
+            const phone = document.getElementById('signup-phone').value.trim();
+            const password = document.getElementById('signup-pass').value.trim();
+
+            if(!username || !email || !password) {
+                alert("দয়া করে প্রয়োজনীয় তথ্য সঠিকভাবে পূরণ করুন!");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/signup', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, email, phone, password})
+                });
+                const data = await res.json();
+                alert(data.message);
+                if(data.status === 'success') switchAuth('login');
+            } catch (err) {
+                alert("সার্ভার কানেকশন ত্রুটি! পুনরায় চেষ্টা করুন।");
+            }
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-pass').value.trim();
+
+            if(!email || !password) {
+                alert("ইমেইল এবং পাসওয়ার্ড প্রদান করুন!");
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, password})
+                });
+                const data = await res.json();
+
+                if(data.status === 'success') {
+                    document.getElementById('auth-page').style.display = 'none';
+                    document.getElementById('dashboard-page').style.display = 'block';
+                    document.getElementById('user-info').innerText = "Logged in: " + data.username;
+                    updateChart();
+                } else {
+                    alert(data.message);
+                }
+            } catch (err) {
+                alert("লগইন করতে সমস্যা হয়েছে!");
+            }
+        }
+
+        function updateChart() {
+            const symbol = document.getElementById('symbol-select').value;
+            const interval = document.getElementById('tf-select').value;
+            document.getElementById('tv-chart').innerHTML = '';
+            
+            if (typeof TradingView !== 'undefined') {
+                new TradingView.widget({
+                    "autosize": true,
+                    "symbol": symbol,
+                    "interval": interval,
+                    "timezone": "Etc/UTC",
+                    "theme": "dark",
+                    "style": "1",
+                    "locale": "en",
+                    "toolbar_bg": "#f1f3f6",
+                    "enable_publishing": false,
+                    "hide_side_toolbar": false,
+                    "container_id": "tv-chart"
+                });
+            }
+        }
+
+        async function getAISignal() {
+            const btn = document.getElementById('analyze-btn');
+            btn.innerText = "ANALYZING MARKET...";
+            btn.disabled = true;
+
+            const rawSymbol = document.getElementById('symbol-select').value;
+            const symbol = rawSymbol.split(':')[1] || rawSymbol;
+            const duration = document.getElementById('tf-select').value;
+
+            try {
+                const res = await fetch('/api/get_signal', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({symbol, duration})
+                });
+                const data = await res.json();
+
+                if(data.status === 'success') {
+                    document.getElementById('signal-output').style.display = 'block';
+                    document.getElementById('signal-direction').innerText = data.direction;
+                    document.getElementById('pa-price').innerText = data.price;
+                    document.getElementById('pa-action').innerText = data.direction.includes('CALL') ? "BUY / CALL ABOVE " + data.price : (data.direction.includes('PUT') ? "SELL / PUT BELOW " + data.price : "NO TRADE");
+                    document.getElementById('pa-support').innerText = data.support;
+                    document.getElementById('pa-resistance').innerText = data.resistance;
+                    document.getElementById('pa-time').innerText = data.entry_time;
+
+                    const badge = document.getElementById('signal-badge');
+                    badge.innerText = data.signal_type;
+                    if(data.direction.includes('CALL')) {
+                        badge.className = 'status-badge call-btn';
+                    } else if(data.direction.includes('PUT')) {
+                        badge.className = 'status-badge put-btn';
+                    } else {
+                        badge.className = 'status-badge neutral-btn';
+                    }
+                } else {
+                    alert(data.message || "মার্কেট ডাটা ফেচ করতে ব্যর্থ হয়েছে!");
+                }
+            } catch (err) {
+                alert("সিগন্যাল জেনারেট করতে সমস্যা হয়েছে!");
+            } finally {
+                btn.innerText = "ANALYZE MARKET NOW";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+                  </html>
+                  
